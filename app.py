@@ -1,43 +1,13 @@
+import streamlit as st
 import pandas as pd
 import numpy as np
-import streamlit as st
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
+import joblib
 
-# Load dataset
-@st.cache_data
-def load_data():
-    df = pd.read_csv("https://raw.githubusercontent.com/Grandmaster0111/ML-Datasets/main/Loan-Approval/loan.csv")
-    return df
+# Load trained model
+model = joblib.load("loan_model.pkl")
 
-df = load_data()
-
-# Preprocessing
-df.dropna(inplace=True)
-le = LabelEncoder()
-for col in ['Gender', 'Married', 'Education', 'Self_Employed', 'Property_Area', 'Loan_Status', 'Dependents']:
-    df[col] = le.fit_transform(df[col])
-
-# Features and target
-X = df.drop(columns=['Loan_ID', 'Loan_Status'])
-y = df['Loan_Status']
-
-# Split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# Model
-model = RandomForestClassifier(n_estimators=100, random_state=42)
-model.fit(X_train, y_train)
-y_pred = model.predict(X_test)
-
-# Accuracy
-acc = accuracy_score(y_test, y_pred)
-
-# Streamlit UI
-st.title("🏦 Loan Approval Prediction System")
-st.markdown("Predict loan approval using ML with accuracy: **{:.2f}%**".format(acc * 100))
+st.title("🏦 Loan Approval Predictor")
+st.write("Fill in the details below to predict if your loan will be approved.")
 
 # User input
 def user_input():
@@ -53,7 +23,8 @@ def user_input():
     Credit_History = st.selectbox("Credit History", [1.0, 0.0])
     Property_Area = st.selectbox("Property Area", ['Urban', 'Rural', 'Semiurban'])
 
-    user_data = {
+    # Convert to encoded format
+    input_data = {
         'Gender': 1 if Gender == 'Male' else 0,
         'Married': 1 if Married == 'Yes' else 0,
         'Dependents': 3 if Dependents == '3+' else int(Dependents),
@@ -67,13 +38,11 @@ def user_input():
         'Property_Area': ['Urban', 'Rural', 'Semiurban'].index(Property_Area)
     }
 
-    return pd.DataFrame([user_data])
+    return pd.DataFrame([input_data])
 
 input_df = user_input()
 
-# Prediction
 if st.button("Predict"):
     prediction = model.predict(input_df)
-    result = 'Approved' if prediction[0] == 1 else 'Rejected'
-    st.success(f"🏁 Loan Status: **{result}**")
-
+    result = "✅ Approved" if prediction[0] == 1 else "❌ Rejected"
+    st.subheader(f"Loan Prediction Result: {result}")
